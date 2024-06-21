@@ -1,5 +1,6 @@
 "use strict";
 
+// Data for accounts
 const account1 = {
   owner: "Jonas Schmedtmann",
   movements: [200, 450, -400, 3000, -650, -130, 70, 1300],
@@ -30,10 +31,7 @@ const account4 = {
 
 const accounts = [account1, account2, account3, account4];
 
-/////////////////////////////////////////////////
-/////////////////////////////////////////////////
-// LECTURES
-
+// Currencies map
 const currencies = new Map([
   ["USD", "United States dollar"],
   ["EUR", "Euro"],
@@ -42,83 +40,84 @@ const currencies = new Map([
 
 const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
 
-/////////////////////////////////////////////////
-let insideTransaction = document.querySelector(".transaction-container");
-let body = document.querySelector(".main-account");
-let balanceContainer = document.querySelector(".bal");
-let moneyIn = document.querySelector(".in-sum");
-let moneyOut = document.querySelector(".out-sum");
-let moneyInterest = document.querySelector(".interest-sum");
-let user = document.querySelector(".user");
-let password = document.querySelector(".password");
-let enter = document.querySelector(".enter");
-let welcomeMessage = document.querySelector(".welcome-message");
+// DOM elements
+const insideTransaction = document.querySelector(".transaction-container");
+const body = document.querySelector(".main-account");
+const balanceContainer = document.querySelector(".bal");
+const moneyIn = document.querySelector(".in-sum");
+const moneyOut = document.querySelector(".out-sum");
+const moneyInterest = document.querySelector(".interest-sum");
+const user = document.querySelector(".user");
+const password = document.querySelector(".password");
+const enter = document.querySelector(".enter");
+const welcomeMessage = document.querySelector(".welcome-message");
+
 let currentAccount;
 
-const displayMovement = (movement) => {
+// Function to display movements
+const displayMovement = (movements) => {
   insideTransaction.innerHTML = "";
-  movement.forEach((mov, i) => {
-    let transaction = `
-                <div class="inside-transaction-container">
-                  <p class="status-of-transaction ${
-                    mov > 0 ? "green" : "red"
-                  }">${i + 1} ${mov > 0 ? "deposit" : "withdraw"}</p>
-                  <p  class="date-of-transction">12/03/2020</p>
-                  <p class="transaction-amount">${Math.abs(mov)} €</p>
-                  </div>`;
+  movements.forEach((mov, i) => {
+    const transaction = `
+      <div class="inside-transaction-container">
+        <p class="status-of-transaction ${mov > 0 ? "green" : "red"}">${i + 1} ${mov > 0 ? "deposit" : "withdraw"}</p>
+        <p class="date-of-transction">12/03/2020</p>
+        <p class="transaction-amount">${Math.abs(mov)} €</p>
+      </div>`;
     insideTransaction.insertAdjacentHTML("afterbegin", transaction);
   });
 };
 
-let totalBalance = (balance) => {
-  let bal = balance.reduce((m, i) => m + i, 0);
-  balanceContainer.textContent = `${bal} €`;
+// Function to calculate and display total balance
+const totalBalance = (movements) => {
+  const balance = movements.reduce((acc, mov) => acc + mov, 0);
+  balanceContainer.textContent = `${balance} €`;
 };
 totalBalance(movements);
 
-let computedUsername = (name) => {
-  name.forEach((acc) => {
+// Function to compute usernames
+const computeUsernames = (accounts) => {
+  accounts.forEach((acc) => {
     acc.username = acc.owner
       .toLowerCase()
       .split(" ")
-      .map((accs) => accs[0])
+      .map((name) => name[0])
       .join("");
   });
 };
-computedUsername(accounts);
+computeUsernames(accounts);
 
-let amountRecieved = (amount) => {
-  let amountIn = amount
+// Function to calculate and display summary (money in, out, interest)
+const amountReceived = (movements) => {
+  const income = movements.filter((mov) => mov > 0).reduce((sum, mov) => sum + mov, 0);
+  moneyIn.textContent = `${income} €`;
+
+  const outcome = movements.filter((mov) => mov < 0).reduce((sum, mov) => sum + mov, 0);
+  moneyOut.textContent = `${Math.abs(outcome)} €`;
+
+  const interest = movements
     .filter((mov) => mov > 0)
-    .reduce((mov, acc) => mov + acc, 0);
-  moneyIn.textContent = `${amountIn} €`;
-
-  let amountOut = amount
-    .filter((mov) => mov < 0)
-    .reduce((mov, acc) => mov + acc, 0);
-  moneyOut.textContent = `${Math.abs(amountOut)} €`;
-
-  let interestAmount = amount
-    .filter((amount) => amount > 0)
-    .map((amount) => (amount * 1.2) / 100)
-    .filter((amount) => amount >= 1)
-    .reduce((amount, mov) => amount + mov, 0);
-  moneyInterest.textContent = `${interestAmount} €`;
+    .map((deposit) => (deposit * currentAccount.interestRate) / 100)
+    .filter((interest) => interest >= 1)
+    .reduce((sum, int) => sum + int, 0);
+  moneyInterest.textContent = `${interest} €`;
 };
 
-let implimentLogin = (real) => {
-  currentAccount = real.find((acc) => user.value === acc?.username);
-  if (Number(password.value) === currentAccount?.pin) {
-    amountRecieved(currentAccount.movements);
+// Function to handle login
+const implementLogin = (accounts) => {
+  currentAccount = accounts.find((acc) => user.value === acc?.username);
+  if (currentAccount && Number(password.value) === currentAccount.pin) {
+    amountReceived(currentAccount.movements);
     displayMovement(currentAccount.movements);
-    welcomeMessage.textContent = `Welcome Onboard, ${
-      currentAccount.owner.split(" ")[0]
-    }`;
+    totalBalance(currentAccount.movements);
+    welcomeMessage.textContent = `Welcome Onboard, ${currentAccount.owner.split(" ")[0]}`;
     body.classList.add("dis");
   }
 };
 
+// Event listener for login button
 enter.addEventListener("click", (e) => {
-  implimentLogin(accounts);
-  password.value = user.value = "";
+  e.preventDefault(); // Prevent form submission
+  implementLogin(accounts);
+  password.value = user.value = ""; // Clear input fields
 });
